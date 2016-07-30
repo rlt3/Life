@@ -41,22 +41,30 @@ cell_neighbors (Life *life, int x, int y, int type)
 {
     int neighbors = 0;
 
-    if (x > 0 && life->cell[y][x - 1] == type)
-            neighbors++;
+    /* top */
     if (y > 0 && life->cell[y - 1][x] == type)
             neighbors++;
-    if (y < BOARD_Y && life->cell[y + 1][x] == type)
-            neighbors++;
+    /* right */
     if (x < BOARD_X && life->cell[y][x + 1] == type)
             neighbors++;
+    /* bottom */
+    if (y < BOARD_Y && life->cell[y + 1][x] == type)
+            neighbors++;
+    /* left */
+    if (x > 0 && life->cell[y][x - 1] == type)
+            neighbors++;
 
-    if ((x > 0 && y < BOARD_Y) && life->cell[y + 1][x - 1] == type)
+    /* top left */
+    if ((x > 0 && y > 0) && life->cell[y - 1][x - 1] == type)
             neighbors++;
-    if ((x < BOARD_X && y < BOARD_Y) && life->cell[y + 1][x + 1] == type)
-            neighbors++;
+    /* top right */
     if ((x < BOARD_X && y > 0) && life->cell[y - 1][x + 1] == type)
             neighbors++;
-    if ((x > 0 && y > 0) && life->cell[y - 1][x - 1] == type)
+    /* bottom right */
+    if ((x < BOARD_X && y < BOARD_Y) && life->cell[y + 1][x + 1] == type)
+            neighbors++;
+    /* bottom left */
+    if ((x > 0 && y < BOARD_Y) && life->cell[y + 1][x - 1] == type)
             neighbors++;
 
     return neighbors;
