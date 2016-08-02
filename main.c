@@ -16,7 +16,7 @@
 #define DEAD      0
 #define WHITE     255, 255, 255, 255
 #define BLACK       0,   0,   0, 255
-#define HALF_SEC  500
+#define PERIOD    250
 
 SDL_Renderer     *renderer;
 SDL_Window       *window;
@@ -245,6 +245,14 @@ main (int argc, char **argv)
                 case SDLK_SPACE:
                     paused = !paused;
                     break;
+
+                case SDLK_RIGHT:
+                    life.tick = tick_forward;
+                    break;
+
+                case SDLK_LEFT:
+                    life.tick = tick_backward;
+                    break;
                 }
                 break;
 
@@ -268,7 +276,7 @@ main (int argc, char **argv)
             }
         }
 
-        if (!paused && (current_time - last_time > HALF_SEC)) {
+        if (!paused && (current_time - last_time > PERIOD)) {
             step(&life);
             mouseover_index = 0;
             last_time = current_time;
