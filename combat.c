@@ -4,8 +4,8 @@
 #include <string.h>
 #include <math.h>
 
-#define BOARD_X   10
-#define BOARD_Y   10
+#define BOARD_X   50
+#define BOARD_Y   50
 #define TILE_SIZE 10
 #define PERIOD    250
 
@@ -117,7 +117,7 @@ set:
 void
 update_neighbors (Board *b, int ux, int uy)
 {
-    const int radius = 4;
+    const int radius = 6;
     int x_min, x_max, y_min, y_max, x, y;
     Unit *u = &b->unit[uy][ux];
 
@@ -212,7 +212,7 @@ print (Board *b, int x, int y)
 }
 
 /*
- * Set each cell into its next generation.
+ * Set each unit into its next generation.
  */
 void
 next (Board *board, int x, int y)
@@ -259,14 +259,49 @@ step (Board *board)
     each_unit(next, board);
 }
 
+static inline Unit*
+unit_from_mouseover (int x, int y, Board *board)
+{
+    return &board->unit[y / TILE_SIZE][x / TILE_SIZE];
+}
+
+static inline int
+unit_in_array (Unit *unit, Unit **array, int index)
+{
+    int i;
+    for (i = 0; i < index; i++)
+        if (array[i] == unit)
+            return 1;
+    return 0;
+}
+
+static inline void
+toggle_mouseover_unit (Unit *unit, Unit **arr, int *len, int mousedown,
+        enum Team team, enum Type type)
+{
+    if (!unit_in_array(unit, arr, *len) && mousedown) {
+        unit->team = team;
+        unit->type = type;
+        arr[*len] = unit;
+        if (*len < BOARD_X * BOARD_Y)
+            (*len)++;
+    }
+}
+
 int
 main (int argc, char **argv)
 {
+    /* regular vars */
     Board game;
-    Unit *unit;
     uint32_t current_time, last_time;
-    int paused, mousedown, mouseover_index;
-    int *mouseover_units[BOARD_X * BOARD_Y];
+    int paused;
+
+    /* mousebutton vars */
+    Unit *unit;
+    enum Type type = REG;
+    enum Team team = RED;
+    int mousedown, mouseover_index;
+    Unit *mouseover_units[BOARD_X * BOARD_Y];
 
     SDL_Init(SDL_INIT_VIDEO);
     SDL_CreateWindowAndRenderer(BOARD_X * TILE_SIZE, BOARD_Y * TILE_SIZE,
@@ -312,28 +347,54 @@ main (int argc, char **argv)
                     paused = !paused;
                     break;
 
+                /* press shift to change unit type to dark */
+                case SDLK_LSHIFT:
+                case SDLK_RSHIFT:
+                    type = DARK;
+                    break;
+
                 case SDLK_RIGHT:
                 case SDLK_LEFT:
                     break;
                 }
                 break;
 
-                case SDL_MOUSEMOTION:
-                    //cell = cell_from_mouseover(e.button.x, e.button.y, &game);
-                    //toggle_mouseover_cell(cell, mouseover_cells, 
-                    //        &mouseover_index, mousedown);
+            case SDL_KEYUP:
+                switch(e.key.keysym.sym) {
+                /* when stop pressing shift, back to regular unit type */
+                case SDLK_LSHIFT:
+                case SDLK_RSHIFT:
+                    type = REG;
                     break;
+                }
+                break;
+
+
+            case SDL_MOUSEMOTION:
+                unit = unit_from_mouseover(e.button.x, e.button.y, &game);
+                toggle_mouseover_unit(unit, mouseover_units, &mouseover_index, 
+                        mousedown, team, type);
+                break;
 
             case SDL_MOUSEBUTTONUP:
                 mousedown = 0;
                 break;
 
             case SDL_MOUSEBUTTONDOWN:
+                switch (e.button.button) {
+                case SDL_BUTTON_LEFT:
+                    team = RED;
+                    break;
+
+                case SDL_BUTTON_RIGHT:
+                    team = BLUE;
+                    break;
+                };
                 mousedown = 1;
                 mouseover_index = 0;
-                //cell = cell_from_mouseover(e.button.x, e.button.y, &game);
-                //toggle_mouseover_cell(cell, mouseover_cells, &mouseover_index, 
-                //        mousedown);
+                unit = unit_from_mouseover(e.button.x, e.button.y, &game);
+                toggle_mouseover_unit(unit, mouseover_units, &mouseover_index, 
+                        mousedown, team, type);
                 break;
             }
         }
