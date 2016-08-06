@@ -84,18 +84,21 @@ distance (const Coordinate a, const Coordinate b)
 void
 move_unit (Unit *u)
 {
+    static Coordinate last_visited = {-1, -1};
     static const Coordinate directions[8] = {
         {0, 1}, {1,1}, {1,0}, {1,-1}, {0,-1}, {-1,-1}, {-1, 0}, {-1,1}
     };
-    static Coordinate last_visited = {-1, -1};
 
     Coordinate dir = direction(u->target, u->loc);
     Coordinate next = add_coords(u->loc, dir);
     Coordinate shortest;
-    float d, shortest_d = 0;
     int distances[8] = {0};
+    float d, shortest_d = 0.0;
     int x, y, i, j;
     int r = 5; /* look-around radius */
+
+    for (i = 0; i < 8; i++)
+        distances[i] = 0.0;
 
     /* test if the preferred direction is available */
     for (i = 1; i <= r; i++) {
@@ -104,6 +107,10 @@ move_unit (Unit *u)
 
         if (x < 0 || x > BOARD_X || y < 0 || y > BOARD_Y)
             continue;
+
+        /* if one of the squares is the target */
+        if (y == u->target.y && x == u->target.x)
+            break;
 
         /* a non-empty square */
         if (board[y][x] != 0)
@@ -118,26 +125,46 @@ look_around:
     /* look around and find the limits of each direction (limited by r) */
     for (i = 1; i <= r; i++) {
         for (j = 0; j < 8; j++) {
-            x = u->loc.x + (directions[j].x * i);
-            y = u->loc.y + (directions[j].y * i);
-
-            if (x < 0 || x > BOARD_X || y < 0 || y > BOARD_Y)
-                continue;
-
-            /* a non-empty square */
-            if (board[y][x] == 1)
-                continue;
-
-            /* only increment the distance if it hasn't been limited */
+            /* only do checks if direction hasn't been limited */
             if (distances[j] == i - 1) {
+                x = u->loc.x + (directions[j].x * i);
+                y = u->loc.y + (directions[j].y * i);
+
+                if (x < 0 || x > BOARD_X || y < 0 || y > BOARD_Y)
+                    continue;
+
+                /* a non-empty square */
+                if (board[y][x] == 1)
+                    continue;
+
                 distances[j]++;
                 overlaid[y][x] = 1;
             }
         }
     }
 
+    /*
+     * TODO: 
+     * How to keep target areas which are obviously closer (but do have 
+     * obstacles) being chosen over completely remote areas but which don't 
+     * have obstacles.
+     *
+     * * weight directions that we came from negatively, but not too much 
+     * that the unit woudn't want to go back.
+     *
+     * * add distances for each neighbor (including out-of-bounds ones) but 
+     * still giving bad weight for obstacles
+     *
+     * * scale obstacle factor by the distance (so obstacles impact but less
+     * negatively on closer ones).
+     */
+
     /* At the limit of each direction L, score the neighbors of L */
+    printf("Distance Weights:\n");
     for (i = 0; i < 8; i++) {
+        if (distances[i] == 0)
+            continue;
+
         x = u->loc.x + (directions[i].x * distances[i]);
         y = u->loc.y + (directions[i].y * distances[i]);
 
@@ -145,26 +172,32 @@ look_around:
 
         /* score immediately neighboring squares */
         for (j = 0; j < 8; j++) {
-            if (x + directions[j].x < 0 || x + directions[j].x > BOARD_X || 
-                y + directions[j].y < 0 || y + directions[j].y > BOARD_Y)
+            next = (Coordinate) {
+                .x = x + directions[j].x,
+                .y = y + directions[j].y
+            };
+
+            if (next.x < 0 || next.x > BOARD_X || next.y < 0 || next.y > BOARD_Y)
                 continue;
 
             /* if one of the neighbors is the target */
-            if (y + directions[j].y == u->target.y && 
-                x + directions[j].x == u->target.x) {
+            if (next.y == u->target.y && next.x == u->target.x) {
                 shortest = (Coordinate){x, y};
                 goto step;
             }
 
             /* a non-empty square */
-            if (board[y + directions[j].y][x + directions[j].x] == 1)
-                d += 0.5;
+            //if (board[next.y][next.x] == 1)
+            //    d += 1.0;
+                //d *= 4;
         }
 
         if (shortest_d == 0.0 || shortest_d > d) {
             shortest = (Coordinate){x, y};
             shortest_d = d;
         }
+
+        printf("%d, %d: %f\n", directions[i].x, directions[i].y, d);
     }
 
 step:
@@ -186,7 +219,10 @@ main (int argc, char **argv)
     int x, y;
     SDL_Rect r;
 
-    board[1][1] = 1; board[2][1] = 1; board[3][1] = 1; board[3][2] = 1; board[3][3] = 1; board[3][4] = 1; board[3][5] = 1; board[3][6] = 1; board[3][7] = 1; board[3][8] = 1; board[4][4] = 1; board[4][7] = 1; board[5][7] = 1; board[6][7] = 1;
+    //board[1][1] = 1; board[2][1] = 1; board[3][1] = 1; board[3][2] = 1; board[3][3] = 1; board[3][4] = 1; board[3][5] = 1; board[3][6] = 1; board[3][7] = 1; board[3][8] = 1; board[4][4] = 1; board[4][7] = 1; board[5][7] = 1; board[6][7] = 1;
+
+    unit.target = (Coordinate) { 6, 3 };
+    board[1][5] = 1; board[2][5] = 1; board[3][5] = 1; board[4][5] = 1; board[4][6] = 1; board[4][7] = 1; board[4][8] = 1;
 
     SDL_Init(SDL_INIT_VIDEO);
     SDL_CreateWindowAndRenderer(BOARD_X * TILE_SIZE, BOARD_Y * TILE_SIZE,
