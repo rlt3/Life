@@ -90,7 +90,7 @@ move_unit (Unit *u)
     static Coordinate last_visited = {-1, -1};
 
     Coordinate dir = direction(u->target, u->loc);
-    Coordinate preferred_step = add_coords(u->loc, dir);
+    Coordinate next = add_coords(u->loc, dir);
     Coordinate shortest;
     float d, shortest_d = 0;
     int distances[8] = {0};
@@ -111,7 +111,7 @@ move_unit (Unit *u)
     }
 
     last_visited = u->loc;
-    u->loc = preferred_step;
+    u->loc = next;
     goto exit;
 
 look_around:
@@ -136,29 +136,38 @@ look_around:
         }
     }
 
-check_distance:
-    /* find lowest distance, preferring directions that haven't been limited */
-    for (j = 0; j < 8; j++) {
-        if (distances[j] != r)
-            continue;
-
-        /* these distances have already been bounds checked above */
-        x = u->loc.x + (directions[j].x * r);
-        y = u->loc.y + (directions[j].y * r);
+    /* At the limit of each direction L, score the neighbors of L */
+    for (i = 0; i < 8; i++) {
+        x = u->loc.x + (directions[i].x * distances[i]);
+        y = u->loc.y + (directions[i].y * distances[i]);
 
         d = distance((Coordinate){x, y}, u->target);
-        if (shortest_d == 0 || shortest_d > d) {
+
+        /* score immediately neighboring squares */
+        for (j = 0; j < 8; j++) {
+            if (x + directions[j].x < 0 || x + directions[j].x > BOARD_X || 
+                y + directions[j].y < 0 || y + directions[j].y > BOARD_Y)
+                continue;
+
+            /* if one of the neighbors is the target */
+            if (y + directions[j].y == u->target.y && 
+                x + directions[j].x == u->target.x) {
+                shortest = (Coordinate){x, y};
+                goto step;
+            }
+
+            /* a non-empty square */
+            if (board[y + directions[j].y][x + directions[j].x] == 1)
+                d += 0.5;
+        }
+
+        if (shortest_d == 0.0 || shortest_d > d) {
             shortest = (Coordinate){x, y};
             shortest_d = d;
         }
     }
 
-    /* lower range if no lowest distance was found */
-    if (shortest_d == 0.0) {
-        r--;
-        goto check_distance;
-    }
-
+step:
     last_visited = u->loc;
     u->loc = add_coords(u->loc, direction(shortest, u->loc));
 
@@ -173,9 +182,11 @@ main (int argc, char **argv)
 
     uint32_t current_time, last_time;
     int *tile, *mouseover_tiles[BOARD_X * BOARD_Y];
-    int mouseover_index, mousedown, shift_down, paused;
+    int mouseover_index, mousedown, shift_down, save, step, paused;
     int x, y;
     SDL_Rect r;
+
+    board[1][1] = 1; board[2][1] = 1; board[3][1] = 1; board[3][2] = 1; board[3][3] = 1; board[3][4] = 1; board[3][5] = 1; board[3][6] = 1; board[3][7] = 1; board[3][8] = 1; board[4][4] = 1; board[4][7] = 1; board[5][7] = 1; board[6][7] = 1;
 
     SDL_Init(SDL_INIT_VIDEO);
     SDL_CreateWindowAndRenderer(BOARD_X * TILE_SIZE, BOARD_Y * TILE_SIZE,
@@ -185,6 +196,8 @@ main (int argc, char **argv)
     current_time    = SDL_GetTicks();
     last_time       = current_time;
     paused          = 1;
+    step            = 0;
+    save            = 0;
     mouseover_index = 0;
     mousedown       = 0; 
     shift_down      = 0;
@@ -232,11 +245,18 @@ input:
             case SDL_KEYDOWN:
                 switch(e.key.keysym.sym) {
                 case SDLK_ESCAPE: case SDL_QUIT:
+                    if (shift_down)
+                        save = 1;
                     goto quit;
                     break;
 
                 case SDLK_SPACE:
                     paused = !paused;
+                    break;
+
+                case SDLK_RIGHT:
+                    if (paused && !step)
+                        step = 1;
                     break;
 
                 case SDLK_LSHIFT:
@@ -294,10 +314,12 @@ input:
             }
         }
 
-        if (!paused && (current_time - last_time > PERIOD)) {
+        if ((paused && step) || 
+            (!paused && (current_time - last_time > PERIOD))) {
             for (y = 0; y < BOARD_Y; y++)
                 for (x = 0; x < BOARD_X; x++)
                     overlaid[y][x] = 0;
+            step = 0;
             move_unit(&unit);
             last_time = current_time;
         }
@@ -307,5 +329,13 @@ quit:
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
+
+    if (save) {
+        for (y = 0; y < BOARD_Y; y++)
+            for (x = 0; x < BOARD_X; x++)
+                if (board[y][x])
+                    printf("board[%d][%d] = 1;\n", y, x);
+    }
+
     return 0;
 }
