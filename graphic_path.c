@@ -94,36 +94,33 @@ move_unit (Unit *u)
     Coordinate shortest;
     int distances[8] = {0};
     float d, shortest_d = 0.0;
-    int x, y, i, j;
-    int r = 5; /* look-around radius */
+    int x, y, i, j, r;
 
-    for (i = 0; i < 8; i++)
-        distances[i] = 0.0;
+    ///* test if the preferred direction is available */
+    //for (i = 1; i <= r; i++) {
+    //    x = u->loc.x + (dir.x * i);
+    //    y = u->loc.y + (dir.y * i);
 
-    /* test if the preferred direction is available */
-    for (i = 1; i <= r; i++) {
-        x = u->loc.x + (dir.x * i);
-        y = u->loc.y + (dir.y * i);
+    //    if (x < 0 || x >= BOARD_X || y < 0 || y >= BOARD_Y)
+    //        continue;
 
-        if (x < 0 || x >= BOARD_X || y < 0 || y >= BOARD_Y)
-            continue;
+    //    /* if one of the squares is the target */
+    //    if (y == u->target.y && x == u->target.x)
+    //        break;
 
-        /* if one of the squares is the target */
-        if (y == u->target.y && x == u->target.x)
-            break;
+    //    /* a non-empty square */
+    //    if (board[y][x] != 0)
+    //        goto look_around;
+    //}
 
-        /* a non-empty square */
-        if (board[y][x] != 0)
-            goto look_around;
-    }
+    //last_visited = u->loc;
+    //u->loc = next;
+    //goto exit;
 
-    last_visited = u->loc;
-    u->loc = next;
-    goto exit;
-
-look_around:
+//look_around:
     /* look around and find the limits of each direction (limited by r) */
-    for (i = 1; i <= r; i++) {
+    for (i = 1; i; i++) {
+        r = 0;
         for (j = 0; j < 8; j++) {
             /* only do checks if direction hasn't been limited */
             if (distances[j] == i - 1) {
@@ -133,14 +130,26 @@ look_around:
                 if (x < 0 || x >= BOARD_X || y < 0 || y >= BOARD_Y)
                     continue;
 
+                /* if one of the squares is the target */
+                if (y == u->target.y && x == u->target.x) {
+                    last_visited = u->loc;
+                    u->loc = next;
+                    return;
+                }
+
                 /* a non-empty square */
                 if (board[y][x] == 1)
                     continue;
 
+                r++;
                 distances[j]++;
                 overlaid[y][x] = 1;
             }
         }
+
+        /* if maxed out distances */
+        if (r == 0)
+            break;
     }
     
     /*
@@ -214,11 +223,11 @@ main (int argc, char **argv)
 
     //board[1][1] = 1; board[2][1] = 1; board[3][1] = 1; board[3][2] = 1; board[3][3] = 1; board[3][4] = 1; board[3][5] = 1; board[3][6] = 1; board[3][7] = 1; board[3][8] = 1; board[4][4] = 1; board[4][7] = 1; board[5][7] = 1; board[6][7] = 1;
 
-    //unit.target = (Coordinate) { 6, 3 };
     //board[1][5] = 1; board[2][5] = 1; board[3][5] = 1; board[4][5] = 1; board[4][6] = 1; board[4][7] = 1; board[4][8] = 1;
+    //unit.target = (Coordinate) { 6, 3 };
 
-    board[2][1] = 1; board[2][2] = 1; board[2][3] = 1; board[2][4] = 1; board[2][5] = 1; board[2][6] = 1; board[2][7] = 1; board[2][8] = 1; board[3][1] = 1; board[3][8] = 1; board[4][1] = 1; board[4][8] = 1; board[5][1] = 1; board[5][8] = 1;
-    unit.target = (Coordinate) {4, 1};
+    //board[2][1] = 1; board[2][2] = 1; board[2][3] = 1; board[2][4] = 1; board[2][5] = 1; board[2][6] = 1; board[2][7] = 1; board[2][8] = 1; board[3][1] = 1; board[3][8] = 1; board[4][1] = 1; board[4][8] = 1; board[5][1] = 1; board[5][8] = 1;
+    //unit.target = (Coordinate) {4, 1};
 
     SDL_Init(SDL_INIT_VIDEO);
     SDL_CreateWindowAndRenderer(BOARD_X * TILE_SIZE, BOARD_Y * TILE_SIZE,
