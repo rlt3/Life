@@ -137,42 +137,31 @@ look_around:
                 if (board[y][x] == 1)
                     continue;
 
-                //printf("%d, %d |", x, y);
                 distances[j]++;
                 overlaid[y][x] = 1;
             }
         }
-        //printf("\n");
     }
-    //printf("\n");
-
+    
     /*
-     * TODO: 
-     * How to keep target areas which are obviously closer (but do have 
-     * obstacles) being chosen over completely remote areas but which don't 
-     * have obstacles.
+     * TODO:
+     * 
+     * How do I negatively weight the neighbors of L in the direction of the
+     * target which are filled with obstacles? This is different than just
+     * negatively weighting neighbors with just have obstacles.
      *
-     * * weight directions that we came from negatively, but not too much 
-     * that the unit woudn't want to go back.
-     *
-     * * add distances for each neighbor (including out-of-bounds ones) but 
-     * still giving bad weight for obstacles
-     *
-     * * scale obstacle factor by the distance (so obstacles impact but less
-     * negatively on closer ones).
+     * Maybe, if target's direction is -1, -1 of L, the neighbors at -1, 0; 
+     * 0, -1; and -1, -1 fall under this weighting check because it is those 
+     * which directly affect our forward movement.
      */
 
     /* At the limit of each direction L, score the neighbors of L */
-    printf("%d, %d Distance Weights:\n", u->loc.x, u->loc.y);
     for (i = 0; i < 8; i++) {
         if (distances[i] == 0)
             continue;
 
         x = u->loc.x + (directions[i].x * distances[i]);
         y = u->loc.y + (directions[i].y * distances[i]);
-
-        //printf("%d, %d |", x, y);
-        printf("%d |", distances[i]);
 
         d = distance((Coordinate){x, y}, u->target);
 
@@ -183,30 +172,25 @@ look_around:
                 .y = y + directions[j].y
             };
 
-            if (next.x < 0 || next.x > BOARD_X || next.y < 0 || next.y > BOARD_Y)
+            if (next.x < 0 || next.x >= BOARD_X || 
+                next.y < 0 || next.y >= BOARD_Y)
                 continue;
 
-            //printf("ob |");
             /* if one of the neighbors is the target */
             if (next.y == u->target.y && next.x == u->target.x) {
                 shortest = (Coordinate){x, y};
                 goto step;
             }
-
-            //printf("nnt | %d, %d: %d |", next.x, next.y, board[next.y][next.x]);
             
             /* a non-empty square */
-            //if (board[next.y][next.x] == 1)
-            //    d += 1.0;
-                //d *= 4;
+            if (board[next.y][next.x] == 1)
+                d *= 1.5;
         }
 
         if (shortest_d == 0.0 || shortest_d > d) {
             shortest = (Coordinate){x, y};
             shortest_d = d;
         }
-
-        printf("%d, %d: %f\n", directions[i].x, directions[i].y, d);
     }
 
 step:
@@ -230,8 +214,11 @@ main (int argc, char **argv)
 
     //board[1][1] = 1; board[2][1] = 1; board[3][1] = 1; board[3][2] = 1; board[3][3] = 1; board[3][4] = 1; board[3][5] = 1; board[3][6] = 1; board[3][7] = 1; board[3][8] = 1; board[4][4] = 1; board[4][7] = 1; board[5][7] = 1; board[6][7] = 1;
 
-    unit.target = (Coordinate) { 6, 3 };
-    board[1][5] = 1; board[2][5] = 1; board[3][5] = 1; board[4][5] = 1; board[4][6] = 1; board[4][7] = 1; board[4][8] = 1;
+    //unit.target = (Coordinate) { 6, 3 };
+    //board[1][5] = 1; board[2][5] = 1; board[3][5] = 1; board[4][5] = 1; board[4][6] = 1; board[4][7] = 1; board[4][8] = 1;
+
+    board[2][1] = 1; board[2][2] = 1; board[2][3] = 1; board[2][4] = 1; board[2][5] = 1; board[2][6] = 1; board[2][7] = 1; board[2][8] = 1; board[3][1] = 1; board[3][8] = 1; board[4][1] = 1; board[4][8] = 1; board[5][1] = 1; board[5][8] = 1;
+    unit.target = (Coordinate) {4, 1};
 
     SDL_Init(SDL_INIT_VIDEO);
     SDL_CreateWindowAndRenderer(BOARD_X * TILE_SIZE, BOARD_Y * TILE_SIZE,
@@ -380,6 +367,7 @@ quit:
             for (x = 0; x < BOARD_X; x++)
                 if (board[y][x])
                     printf("board[%d][%d] = 1;\n", y, x);
+        printf("unit.target = (Coordinate) {%d, %d};\n", unit.target.x, unit.target.y);
     }
 
     return 0;
