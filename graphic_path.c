@@ -193,14 +193,20 @@ move_unit (Unit *u)
             
             /* a non-empty square */
             if (board[next.y][next.x] == 1)
-                d *= 1.5;
+                d = powf(d, 1.5);
+                //d *= 1.5;
         }
 
+        //if ((shortest_d == 0.0 || shortest_d > d) &&
+        //    (x != last_visited.x && y != last_visited.y)) {
         if (shortest_d == 0.0 || shortest_d > d) {
             shortest = (Coordinate){x, y};
             shortest_d = d;
         }
+
+        printf("%d, %d: %f\n", directions[i].x, directions[i].y, d);
     }
+    printf("\n");
 
 step:
     last_visited = u->loc;
@@ -228,6 +234,10 @@ main (int argc, char **argv)
 
     //board[2][1] = 1; board[2][2] = 1; board[2][3] = 1; board[2][4] = 1; board[2][5] = 1; board[2][6] = 1; board[2][7] = 1; board[2][8] = 1; board[3][1] = 1; board[3][8] = 1; board[4][1] = 1; board[4][8] = 1; board[5][1] = 1; board[5][8] = 1;
     //unit.target = (Coordinate) {4, 1};
+    //unit.loc = (Coordinate) {4, 8};
+    
+    board[1][1] = 1; board[1][8] = 1; board[2][1] = 1; board[2][8] = 1; board[3][1] = 1; board[3][8] = 1; board[4][1] = 1; board[4][8] = 1; board[5][1] = 1; board[5][2] = 1; board[5][7] = 1; board[5][8] = 1; board[6][2] = 1; board[6][3] = 1; board[6][4] = 1; board[6][6] = 1; board[6][7] = 1; board[7][4] = 1; board[7][5] = 1; board[7][6] = 1;
+    unit.target = (Coordinate) {5, 5};
 
     SDL_Init(SDL_INIT_VIDEO);
     SDL_CreateWindowAndRenderer(BOARD_X * TILE_SIZE, BOARD_Y * TILE_SIZE,
@@ -377,6 +387,7 @@ quit:
                 if (board[y][x])
                     printf("board[%d][%d] = 1;\n", y, x);
         printf("unit.target = (Coordinate) {%d, %d};\n", unit.target.x, unit.target.y);
+        printf("unit.loc = (Coordinate) {%d, %d};\n", unit.loc.x, unit.loc.y);
     }
 
     return 0;
