@@ -105,7 +105,7 @@ move_unit (Unit *u)
         x = u->loc.x + (dir.x * i);
         y = u->loc.y + (dir.y * i);
 
-        if (x < 0 || x > BOARD_X || y < 0 || y > BOARD_Y)
+        if (x < 0 || x >= BOARD_X || y < 0 || y >= BOARD_Y)
             continue;
 
         /* if one of the squares is the target */
@@ -130,18 +130,21 @@ look_around:
                 x = u->loc.x + (directions[j].x * i);
                 y = u->loc.y + (directions[j].y * i);
 
-                if (x < 0 || x > BOARD_X || y < 0 || y > BOARD_Y)
+                if (x < 0 || x >= BOARD_X || y < 0 || y >= BOARD_Y)
                     continue;
 
                 /* a non-empty square */
                 if (board[y][x] == 1)
                     continue;
 
+                //printf("%d, %d |", x, y);
                 distances[j]++;
                 overlaid[y][x] = 1;
             }
         }
+        //printf("\n");
     }
+    //printf("\n");
 
     /*
      * TODO: 
@@ -160,13 +163,16 @@ look_around:
      */
 
     /* At the limit of each direction L, score the neighbors of L */
-    printf("Distance Weights:\n");
+    printf("%d, %d Distance Weights:\n", u->loc.x, u->loc.y);
     for (i = 0; i < 8; i++) {
         if (distances[i] == 0)
             continue;
 
         x = u->loc.x + (directions[i].x * distances[i]);
         y = u->loc.y + (directions[i].y * distances[i]);
+
+        //printf("%d, %d |", x, y);
+        printf("%d |", distances[i]);
 
         d = distance((Coordinate){x, y}, u->target);
 
@@ -180,12 +186,15 @@ look_around:
             if (next.x < 0 || next.x > BOARD_X || next.y < 0 || next.y > BOARD_Y)
                 continue;
 
+            //printf("ob |");
             /* if one of the neighbors is the target */
             if (next.y == u->target.y && next.x == u->target.x) {
                 shortest = (Coordinate){x, y};
                 goto step;
             }
 
+            //printf("nnt | %d, %d: %d |", next.x, next.y, board[next.y][next.x]);
+            
             /* a non-empty square */
             //if (board[next.y][next.x] == 1)
             //    d += 1.0;
