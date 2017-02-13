@@ -236,9 +236,12 @@ main (int argc, char **argv)
 
         while (SDL_PollEvent(&e)) {
             switch (e.type) {
+            case SDL_QUIT:
+                goto quit;
+
             case SDL_KEYDOWN:
                 switch(e.key.keysym.sym) {
-                case SDLK_ESCAPE: case SDL_QUIT:
+                case SDLK_ESCAPE: 
                     goto quit;
                     break;
 
